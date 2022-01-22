@@ -1,16 +1,7 @@
 import torch
 from cleantext import clean
 from os.path import exists
-import codecs
 import pickle
-
-# x = torch.rand(5, 3)
-# print(x)
-
-# y = torch.rand(5, 3)
-# print(y)
-
-# print(x+y)
 
 import numpy as np
 import pandas as pd
@@ -34,30 +25,35 @@ def get_text_from_csv(path):
 
 	df = pd.read_csv(path, sep=',', dtype=str, encoding='utf-8', index_col=False)
 
-	#print (df.head)
-
 	df = df['Resume_str']
-	# Alternative
-	# df = df['Resume_html']
 
 	return df.values.tolist()
 
+def write_cleaned_text(text, file):
+
+	with open(file, 'wb') as f:
+		pickle.dump(text, f)
+
+def read_cleaned_text(file):
+
+	with open(file, 'rb') as f:
+		text = pickle.load(f)
+
+	return text
+
 def main():
+
+	text = get_text_from_csv(RESUME_PATH)
+	clean_text(text)
 
 	file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
 
 	if not (exists(file)):
+		write_cleaned_text(text, file)
 
-		text = get_text_from_csv(RESUME_PATH)
-		clean_text(text)
-
-		with open(file, 'wb') as f:
-			pickle.dump(text, f)
-
-	with open(file, 'rb') as f:
-		testPickle = pickle.load(f)
+	cleaned_text = read_cleaned_text(file)
 	
-	print(testPickle[1200])
+	print(cleaned_text[1200])
 
 if __name__ == '__main__':
 	main()

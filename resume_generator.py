@@ -1,4 +1,5 @@
 import torch
+from torch.utils.data import Dataset
 from cleantext import clean
 from os.path import exists
 import pickle
@@ -43,17 +44,39 @@ def read_cleaned_text(file):
 
 def main():
 
-	text = get_text_from_csv(RESUME_PATH)
-	clean_text(text)
-
-	file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
-
-	if not (exists(file)):
-		write_cleaned_text(text, file)
-
-	cleaned_text = read_cleaned_text(file)
+	s = ResumeDataset(RESUME_PATH)
 	
-	print(cleaned_text[1200])
+	print(s[10])
+
+	#print(cleaned_text[1200])
+	#print(len(cleaned_text))
+
+class ResumeDataset(Dataset):
+
+	def __init__(self, path):
+
+		self.data = []
+		self._load(path)
+
+	def _load(self, path):
+
+		text = get_text_from_csv(path)
+		clean_text(text)
+
+		file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
+
+		if not (exists(file)):
+			write_cleaned_text(text, file)
+
+		self.data = read_cleaned_text(file)
+
+	def __len__(self):
+
+		return len(self.data)
+
+	def __getitem__(self, i):
+
+		return self.data[i]
 
 if __name__ == '__main__':
 	main()

@@ -1,5 +1,6 @@
 import torch
-from torch.utils.data import Dataset
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
 from cleantext import clean
 from os.path import exists
 import pickle
@@ -42,15 +43,6 @@ def read_cleaned_text(file):
 
 	return text
 
-def main():
-
-	s = ResumeDataset(RESUME_PATH)
-	
-	print(s[10])
-
-	#print(cleaned_text[1200])
-	#print(len(cleaned_text))
-
 class ResumeDataset(Dataset):
 
 	def __init__(self, path):
@@ -59,7 +51,6 @@ class ResumeDataset(Dataset):
 		self._load(path)
 
 	def _load(self, path):
-
 		text = get_text_from_csv(path)
 		clean_text(text)
 
@@ -71,12 +62,23 @@ class ResumeDataset(Dataset):
 		self.data = read_cleaned_text(file)
 
 	def __len__(self):
-
 		return len(self.data)
 
 	def __getitem__(self, i):
-
 		return self.data[i]
+
+class RNN(nn.Module):
+
+	def __init__(self):
+		pass
+
+	def forward(self, x):
+		pass
+
+def main():
+	
+	dataset = ResumeDataset(RESUME_PATH)
+	dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
 
 if __name__ == '__main__':
 	main()

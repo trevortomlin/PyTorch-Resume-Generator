@@ -11,6 +11,8 @@ import pandas as pd
 RESUME_PATH = 'data/Resume/Resume.csv'
 CLEANED_TEXT_PATH = 'data/cleaned_text'
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 def clean_text(text):
 
 	for x in range(len(text)):
@@ -69,16 +71,42 @@ class ResumeDataset(Dataset):
 
 class RNN(nn.Module):
 
-	def __init__(self):
-		pass
+	def __init__(self, input_size, hidden_size, output_size, n_layers=1):
+		super(RNN, self).__init__()
 
-	def forward(self, x):
-		pass
+		self.input_size = input_size
+		self.hidden_size = hidden_size
+		self.output_size = output_size
+		self.n_layers = n_layers
+
+		self.encoder = nn.Embedding(input_size, hidden_size)
+		self.rnn = nn.RNN(hidden_size, hidden_size, n_layers)
+		self.decoder = nn.Linear(hidden_size, output_size)
+
+	def forward(self, input_t, hidden_t):
+		input_t = self.encoder(input_t.view(1, -1))
+		output_t, hidden_t = self.gru(input_t.view(1, 1, -1), hidden_t)
+		output_t = self.decoder(output_t.view(1, -1))
+		return output_t, hidden_t
+
+	def init_hidden(self):
+		return torch.zeros(self.n_layers, 1, self.hidden_size)
 
 def main():
-	
+
 	dataset = ResumeDataset(RESUME_PATH)
 	dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
+
+	# FOR TRAINING
+	# NEEDS TO BE MODIFIED LATER
+
+	# rnn = RNN(64, 64, 64)
+
+	# input_tensor = torch.zeros(1, 1, 1)
+	# hidden_tensor = rnn.init_hidden()
+
+	# output, next_hidden = rnn(input_tensor, hidden_tensor)
+
 
 if __name__ == '__main__':
 	main()

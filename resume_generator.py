@@ -53,12 +53,11 @@ class ResumeDataset(Dataset):
 		self._load(path)
 
 	def _load(self, path):
-		text = get_text_from_csv(path)
-		clean_text(text)
-
 		file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
 
 		if not (exists(file)):
+			text = get_text_from_csv(path)
+			clean_text(text)
 			write_cleaned_text(text, file)
 
 		self.data = read_cleaned_text(file)

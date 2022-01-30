@@ -1,21 +1,34 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+
 from cleantext import clean
 from os.path import exists
 import pickle
 
+# For visualizing data
+import matplotlib.pyplot as plt
+from matplotlib import colors
+from matplotlib.ticker import PercentFormatter
+
 import numpy as np
 import pandas as pd
+import random
+from tqdm import tqdm
+
+# Helpful Reference
+# https://github.com/spro/practical-pytorch/blob/master/char-rnn-generation/char-rnn-generation.ipynb
 
 RESUME_PATH = 'data/Resume/Resume.csv'
 CLEANED_TEXT_PATH = 'data/cleaned_text'
+PRINTABLE_CHARS = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!\"#$%&'()*+,-./:;<=>?@[\]^_`{|}~ 	\n"
+NUM_CHARS = len(PRINTABLE_CHARS)
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def clean_text(text):
 
-	for x in range(len(text)):
+	for x in tqdm(range(len(text)), desc="Cleaning..."):
 
 		text[x] = clean(text[x], lower=True, to_ascii=True, fix_unicode=True)
 
@@ -24,6 +37,10 @@ def clean_text(text):
 		text[x] = text[x].replace(" - ", ", ")
 		text[x] = text[x].replace(" ,", ",")
 		text[x] = text[x].replace(" :", ":")
+
+		text[x] = ''.join([y for y in text[x] if y in PRINTABLE_CHARS])
+
+	print("Cleaning Complete.")
 
 def get_text_from_csv(path):
 
@@ -53,6 +70,7 @@ class ResumeDataset(Dataset):
 		self._load(path)
 
 	def _load(self, path):
+		
 		file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
 
 		if not (exists(file)):
@@ -60,7 +78,49 @@ class ResumeDataset(Dataset):
 			clean_text(text)
 			write_cleaned_text(text, file)
 
-		self.data = read_cleaned_text(file)
+		cleaned_data = read_cleaned_text(file)
+
+		for resume in cleaned_data:
+			tensor = torch.zeros(len(resume)).long()
+
+			for c in range(len(resume)):
+				try:
+					tensor[c] = PRINTABLE_CHARS.index(resume[c])
+				except(ValueError):
+					print(resume[c])
+
+			self.data.append(tensor)
+
+		#lenData = [len(x) for x in self.data]
+
+		#dataGT5k = [x for x in self.data if len(x) >= 3500]
+		#print(len(dataGT5k))
+
+		# plt.hist(lenData)
+		# plt.axis([0, 40000, 0, 2000])
+		# plt.xlabel("Number of Characters")
+		# plt.ylabel("Number of Resumes")
+		# plt.show()
+
+		# Stats for length of data
+
+		#avgLen = sum(map(len, self.data))/float(len(self.data))
+
+		# self.data.sort()
+		# mid = len(self.data) // 2
+		# medLen = (len(self.data[mid]) + len(self.data[~mid])) / 2
+
+		# maxLen = 0
+		# minLen = 100000
+
+		# for x in self.data:
+		# 	maxLen = max(maxLen, len(x))
+		# 	minLen = min(minLen, len(x))
+
+		# print("AvgLen: ", avgLen)
+		# print("MaxLen: ", maxLen)
+		# print("MinLen: ", minLen)
+		# print("MedLen: ", medLen)
 
 	def __len__(self):
 		return len(self.data)
@@ -84,7 +144,7 @@ class RNN(nn.Module):
 
 	def forward(self, input_t, hidden_t):
 		input_t = self.encoder(input_t.view(1, -1))
-		output_t, hidden_t = self.gru(input_t.view(1, 1, -1), hidden_t)
+		output_t, hidden_t = self.rnn(input_t.view(1, 1, -1), hidden_t)
 		output_t = self.decoder(output_t.view(1, -1))
 		return output_t, hidden_t
 
@@ -95,6 +155,12 @@ def main():
 
 	dataset = ResumeDataset(RESUME_PATH)
 	dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
+
+	#print(dataset[0])
+
+	#print(PRINTABLE_CHARS)
+
+	#print(NUM_CHARS)
 
 	# FOR TRAINING
 	# NEEDS TO BE MODIFIED LATER

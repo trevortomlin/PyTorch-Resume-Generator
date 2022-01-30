@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import random
 from tqdm import tqdm
+import os
 
 # Helpful Reference
 # https://github.com/spro/practical-pytorch/blob/master/char-rnn-generation/char-rnn-generation.ipynb
@@ -39,6 +40,8 @@ def clean_text(text):
 		text[x] = text[x].replace(" :", ":")
 
 		text[x] = ''.join([y for y in text[x] if y in PRINTABLE_CHARS])
+
+	os.system('cls')
 
 	print("Cleaning Complete.")
 
@@ -70,26 +73,35 @@ class ResumeDataset(Dataset):
 		self._load(path)
 
 	def _load(self, path):
-		
-		file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
 
-		if not (exists(file)):
+		cleaned_text_file = CLEANED_TEXT_PATH + "/cleaned_text.pickle"
+		tensor_file = CLEANED_TEXT_PATH + "/tensor_data.pickle"
+
+		# Saving text data 
+		if not (exists(cleaned_text_file)):
 			text = get_text_from_csv(path)
 			clean_text(text)
-			write_cleaned_text(text, file)
+			write_cleaned_text(text, cleaned_text_file)
 
-		cleaned_data = read_cleaned_text(file)
+		cleaned_data = read_cleaned_text(cleaned_text_file)
 
-		for resume in cleaned_data:
-			tensor = torch.zeros(len(resume)).long()
+		if not (exists(tensor_file)):
 
-			for c in range(len(resume)):
-				try:
-					tensor[c] = PRINTABLE_CHARS.index(resume[c])
-				except(ValueError):
-					print(resume[c])
+			# Converting text data to one hot encoded tensor
+			for resume in cleaned_data:
+				tensor = torch.zeros(len(resume)).long()
 
-			self.data.append(tensor)
+				for c in range(len(resume)):
+					try:
+						tensor[c] = PRINTABLE_CHARS.index(resume[c])
+					except(ValueError):
+						print(resume[c])
+
+				self.data.append(tensor)
+
+			write_cleaned_text(self.data, tensor_file)
+
+		self.data = read_cleaned_text(tensor_file)
 
 		#lenData = [len(x) for x in self.data]
 
@@ -155,6 +167,12 @@ def main():
 
 	dataset = ResumeDataset(RESUME_PATH)
 	dataloader = DataLoader(dataset=dataset, batch_size=4, shuffle=True)
+
+	print(len(dataset.data))
+
+	torch.set_printoptions(threshold=10000)
+
+	print(dataset.data[0])
 
 	#print(dataset[0])
 
